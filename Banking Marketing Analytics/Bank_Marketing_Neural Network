@@ -1,0 +1,95 @@
+#Neural Network 
+
+bankMarketing.df <- read.csv("Bank_Marketing.csv") 
+bankMarketing.df <- bankMarketing.df[ ,c(-18:-20)] 
+summary(bankMarketing.df) 
+ 
+
+#turn categorical variable into dummies  
+
+dummy <- dummyVars( " ~ job + marital + education + default + housing + loan  + month + poutcome + y",  
+
+                    data = bankMarketing.df, fullRank = TRUE)  
+
+newvar <- data.frame(predict(dummy, newdata = bankMarketing.df))   
+head(newvar, 5) 
+numerical.df <- bankMarketing.df[ ,-c(2:5, 7:9, 11, 16:17)] #10 vars 
+head(numerical.df, 5) 
+#merging numerical.df and dummy.df  
+dumnum.df <- merge(numerical.df, newvar, by = "row.names", all = TRUE) 
+head(dumnum.df, 5)  
+summary(dumnum.df) 
+dumnum.df <- dumnum.df[ ,-c(1)] #remove rownames 
+
+#data partition 
+set.seed(1)   
+train.index <- sample(c(1:dim(dumnum.df)[1]), dim(dumnum.df)[1]*0.6)   
+train.df <- dumnum.df[train.index, ] 
+valid.df <- dumnum.df[-train.index, ] 
+head(valid.df, 5) 
+
+  
+
+# scale the numerical predictors on a sacle of 0 to 1 using preProcess() 
+train.scale.df <- train.df 
+valid.scale.df <- valid.df 
+
+  
+
+scale.values <- preProcess(train.df[, c(1:7)], method = c("range")) 
+train.scale.df[ ,c(1:7)] <- predict(scale.values, train.df[ ,c(1:7)]) 
+valid.scale.df[ ,c(1:7)] <- predict(scale.values, valid.df[ ,c(1:7)]) 
+head(train.scale.df, 5) 
+
+col_names <- names(train.scale.df) 
+#col_names 
+f <- as.formula(paste("y.yes~",paste(col_names[!col_names %in% "y.yes"], collapse="+"))) 
+
+#nn with  hidden nodes=1 
+nn <- neuralnet(f, data = train.scale.df, hidden = 1) 
+plot(nn) 
+# get the neural weights 
+neuralweights(nn) 
+# Plot the importance 
+olden(nn)   
+
+# confusion matrix 
+training.prediction <- compute(nn, train.scale.df[,-c(43)]) 
+training.class <- ifelse(training.prediction$net.result > 0.5, 1, 0) 
+training.pred <- confusionMatrix(as.factor(training.class), as.factor(train.scale.df$y.yes)) 
+training.pred 
+
+ 
+validation.prediction <- compute(nn, valid.scale.df[,-c(43)]) 
+validation.class <- ifelse(validation.prediction$net.result>0.5,1,0) 
+validation.pred <- confusionMatrix(as.factor(validation.class), as.factor(valid.scale.df$y.yes))  
+validation.pred 
+
+#nn with 3 hidden nodes  
+nn <- neuralnet(f, data = train.scale.df, hidden = 3) 
+plot(nn) 
+# confusion matrix 
+
+training.prediction <- compute(nn, train.scale.df[,-c(43)]) 
+training.class <- ifelse(training.prediction$net.result > 0.5, 1, 0) 
+training.pred <- confusionMatrix(as.factor(training.class), as.factor(train.scale.df$y.yes)) 
+training.pred 
+
+validation.prediction <- compute(nn, valid.scale.df[,-c(43)]) 
+validation.class <- ifelse(validation.prediction$net.result>0.5,1,0) 
+validation.pred <- confusionMatrix(as.factor(validation.class), as.factor(valid.scale.df$y.yes))  
+validation.pred  
+
+#nn with hidden nodes =5 
+nn <- neuralnet(f, data = train.scale.df, hidden = 5) 
+plot(nn) 
+# confusion matrix 
+training.prediction <- compute(nn, train.scale.df[,-c(43)]) 
+training.class <- ifelse(training.prediction$net.result > 0.5, 1, 0) 
+training.pred <- confusionMatrix(as.factor(training.class), as.factor(train.scale.df$y.yes)) 
+training.pred 
+
+validation.prediction <- compute(nn, valid.scale.df[,-c(43)]) 
+validation.class <- ifelse(validation.prediction$net.result>0.5,1,0) 
+validation.pred <- confusionMatrix(as.factor(validation.class), as.factor(valid.scale.df$y.yes))  
+validation.pred 

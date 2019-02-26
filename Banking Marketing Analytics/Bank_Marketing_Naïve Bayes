@@ -1,0 +1,22 @@
+# Naïve Bayes 
+#### Classification Using Naive Bayes 
+library(e1071)  
+library(caret) 
+
+# run naive bayes 
+deposit.nb <- naiveBayes(y ~ ., data = train) 
+
+deposit.nb 
+## predict probabilities: Training 
+pred.prob <- predict(deposit.nb, newdata = train, type = "raw") 
+## predict class membership 
+pred.class <- predict(deposit.nb, newdata = train) 
+confusionMatrix(pred.class, train$y) 
+
+ 
+## predict probabilities: Validation 
+pred.prob <- predict(deposit.nb, newdata = test, type = "raw") 
+## predict class membership 
+
+pred.class <- predict(deposit.nb, newdata = test) 
+confusionMatrix(pred.class, test$y) 

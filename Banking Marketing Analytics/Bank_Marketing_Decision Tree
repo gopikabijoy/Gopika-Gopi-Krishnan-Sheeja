@@ -1,0 +1,51 @@
+#Decision Tree 
+
+library(rpart) 
+library(rpart.plot) 
+library(caret) 
+dt_model<- rpart(y ~ ., data = train, method = "class") 
+summary(dt_model) 
+
+  
+library(rpart.plot) 
+prp(dt_model, type = 1, extra = 1,under = TRUE, clip.right.lab = FALSE, split.font = 1, 
+
+    box.palette = "GnYlRd", varlen = -10)   
+
+#Confusion matrix on train 
+predictions_train <- predict(dt_model, train, type = "class") 
+table(predictions_train) 
+confusion.matrix <- prop.table(table(predictions_train, train$y)) 
+confusion.matrix 
+confusionMatrix(predictions_train,train$y) 
+
+#################Testing Decision Tree################# 
+
+predictions <- predict(dt_model, test, type = "class") 
+#What is predicted 
+table(predictions) 
+# Lets look at the confusion matrix 
+confusion.matrix <- prop.table(table(predictions, test$y)) 
+
+confusion.matrix 
+#Confusion Matrix default tree test 
+confusionMatrix(predictions,test$y) 
+
+# Grow a full tree,  
+deeper.ct <- rpart(y ~ ., data = train, method = "class",  
+
+                   cp = 0, minsplit = 1) 
+
+printcp(deeper.ct) 
+# count number of leaves 
+length(deeper.ct$frame$var[deeper.ct$frame$var == "<leaf>"]) 
+# plot tree 
+prp(deeper.ct, type = 1, extra = 1, under = TRUE, split.font = 1, varlen = -10,  
+
+    box.col=ifelse(deeper.ct$frame$var == "<leaf>", 'gray', 'white'))   
+
+predictions_train_deeper <- predict(deeper.ct, train, type = "class") 
+confusionMatrix(predictions_train_deeper,train$y) 
+predictions_test_deeper <- predict(deeper.ct, test, type = "class") 
+confusionMatrix(predictions_test_deeper,test$y) 
+

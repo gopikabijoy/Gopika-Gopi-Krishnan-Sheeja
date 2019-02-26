@@ -1,0 +1,78 @@
+library(shiny)
+library(png)
+library(readxl)
+library(HistData)
+library(dplyr)
+library(ggplot2)
+#install.packages("Rcpp")
+setwd("C:/Users/sasid/Desktop/shiny app")
+Bank <- read_excel("Bank_Marketing.xlsx")
+
+# Define UI for our marketing analytics application
+
+ui<-fluidPage(
+  #   Application title
+  titlePanel("Banking Marketing Analytics Application"),
+  tags$img(src = "https://raw.githubusercontent.com/gopikabijoy/Banking-marketing-analytics/master/photoupload.jpg", height = 300, width = 500),
+  tags$br(), 
+  # Sidebar with a couple of numeric inputs and a radio button
+  sidebarLayout(
+    sidebarPanel(
+      
+      
+      helpText("Are you curious to know the trend in different parameters that can affect the customer retention?"),
+      helpText("Select the required input values from the options given below:"),
+      tags$br(),  
+      
+      sliderInput(inputId = "ageInput",
+                  label = "What is the number of bins for customer age histogram?",
+                  value = 25, 
+                  min = 1,
+                  max = 50,
+                  step = 1),
+      
+      checkboxInput("sidebar1","Do you want to see the distribution of campaign for customers having Personal loan?"),
+      checkboxInput("sidebar2","Do you want to see the distribution of campaign for customers having Housing loan?")
+    ),
+    
+    # Show text indicating the values entered
+    mainPanel(
+      h1('Graphical Visualization'),
+      plotOutput("hist1"),
+      plotOutput("bar1"),
+      plotOutput("bar2")
+      
+    )
+    
+  ))
+server <- function(input, output) 
+{
+  #Age
+  {
+    output$hist1<-renderPlot({
+      x=Bank$age
+      bins<-seq(min(x),max(x),length.out = input$ageInput+1)
+      hist(Bank$age,breaks=bins,col = "indianred1", border = "white",xlab="Age Distribution",
+           main="Histogram of Customer Age Distribution")
+    })  
+  }
+  #Campaign v/s month v/s personal loan
+  {
+    output$bar1<-renderPlot({
+      dummy1<-tapply((Bank$campaign)*1000,list(Bank$loan,Bank$month),mean)
+      barplot(dummy1,beside=input$sidebar1,col=c("cornflowerblue","orange"),legend = rownames(dummy1),ylab="Campaign",main = "Month-wise distribution of campaigns with customers having personal loan")
+      
+    })
+  }
+  #Campaign v/s month v/s housing loan
+  {
+    output$bar2<-renderPlot({
+      dummy2<-tapply((Bank$campaign)*1000,list(Bank$housing,Bank$month),mean)
+      barplot(dummy2,beside=input$sidebar2,col=c("yellowgreen","lightsalmon"),ylab="Campaign",legend = rownames(dummy2),main = "Month-wise distribution of campaigns with customers having housing loan")
+      
+    })
+  }
+  
+}
+
+shinyApp(ui=ui,server=server)

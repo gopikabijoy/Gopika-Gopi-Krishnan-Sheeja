@@ -1,0 +1,156 @@
+library(readxl) 
+Bank_Marketing <- read_excel("C:/Users/sasid/Desktop/MSIS/Big Data Analytics/ML Project/Bank_Marketing.xlsx") 
+head(Bank_Marketing) 
+
+#45211 rows with 20 variables 
+str(Bank_Marketing)   
+
+  
+#removing irrelevant columns 
+Bank_Marketing$..18<-NULL 
+Bank_Marketing$..19<-NULL 
+Bank_Marketing$..20<-NULL 
+
+#checking null values 
+any(is.na(Bank_Marketing)) 
+na_count <-sapply(Bank_Marketing, function(y) sum(length(which(is.na(y))))) 
+print(na_count) 
+
+  
+
+#to find the correlation between variables 
+num.cols <- sapply(Bank_Marketing, is.numeric) 
+cor.data <- cor(Bank_Marketing[,num.cols]) 
+print(cor.data) 
+
+#plotting correlation  
+library(corrplot) 
+library(corrgram) 
+corrplot(cor.data,method='color') 
+
+  
+
+#Exploratory data analysis  
+#find the total count of each category in deposit column 
+library(ggplot2) 
+count_plot<-ggplot(Bank_Marketing,aes(x=y))+geom_bar(aes(fill=y)) 
+print(count_plot) 
+#find relation between each numeric column and term deposit(y) 
+deposit_age <- ggplot(Bank_Marketing, aes(factor(y), age)) + geom_boxplot(aes(fill = factor(y))) 
+print(deposit_age) 
+
+deposit_duration <- ggplot(Bank_Marketing, aes(factor(y), duration)) + geom_boxplot(aes(fill = factor(y))) 
+print(deposit_duration) 
+
+deposit_balance <- ggplot(Bank_Marketing, aes(factor(y), balance)) + geom_boxplot(aes(fill = factor(y))) 
+print(deposit_balance) 
+
+deposit_day <- ggplot(Bank_Marketing, aes(factor(y), day)) + geom_boxplot(aes(fill = factor(y))) 
+print(deposit_day) 
+
+deposit_campaign <- ggplot(Bank_Marketing, aes(factor(y), campaign)) + geom_boxplot(aes(fill = factor(y))) 
+print(deposit_campaign) 
+
+deposit_previous <- ggplot(Bank_Marketing, aes(factor(y), previous)) + geom_boxplot(aes(fill = factor(y))) 
+print(deposit_previous) 
+
+  
+#relationship with categorical variables 
+marital_count<-ggplot(Bank_Marketing,aes(x=marital))+geom_bar(aes(fill=y),position='dodge') 
+print(marital_count) 
+education_count<-ggplot(Bank_Marketing,aes(x=education))+geom_bar(aes(fill=y),position='dodge') 
+print(education_count) 
+jobs_count<-ggplot(Bank_Marketing,aes(x=job))+geom_bar(aes(fill=y),position='dodge') 
+print(jobs_count) 
+
+#create dummy variables for categorical columns 
+for(level in unique(Bank_Marketing$job)){ 
+Bank_Marketing[paste("job", level, sep = "_")] <- ifelse(Bank_Marketing$job == level, 1, 0) 
+} 
+for(level in unique(Bank_Marketing$marital)){ 
+  Bank_Marketing[paste("marital", level, sep = "_")] <- ifelse(Bank_Marketing$marital == level, 1, 0) 
+} 
+
+for(level in unique(Bank_Marketing$education)){ 
+  Bank_Marketing[paste("education", level, sep = "_")] <- ifelse(Bank_Marketing$education == level, 1, 0) 
+} 
+
+Bank_Marketing$default_yes <- ifelse(Bank_Marketing$default == "yes", 1, 0) 
+Bank_Marketing$housing_yes <- ifelse(Bank_Marketing$housing == "yes", 1, 0) 
+Bank_Marketing$loan_yes <- ifelse(Bank_Marketing$loan == "yes", 1, 0) 
+for(level in unique(Bank_Marketing$contact)){ 
+
+  Bank_Marketing[paste("contact", level, sep = "_")] <- ifelse(Bank_Marketing$contact == level, 1, 0) 
+
+} 
+
+for(level in unique(Bank_Marketing$month)){ 
+
+  Bank_Marketing[paste("month", level, sep = "_")] <- ifelse(Bank_Marketing$month == level, 1, 0) 
+
+} 
+
+for(level in unique(Bank_Marketing$poutcome)){ 
+
+  Bank_Marketing[paste("poutcome", level, sep = "_")] <- ifelse(Bank_Marketing$poutcome == level, 1, 0) 
+
+} 
+
+Bank_Marketing$Class <- ifelse(Bank_Marketing$y == "yes", "Yes", "No") 
+str(Bank_Marketing) 
+#Remove unwanted columns 
+Bank_Marketing$duration<-NULL 
+Bank_Marketing$X <- NULL 
+Bank_Marketing$job <- NULL 
+Bank_Marketing$marital <- NULL 
+Bank_Marketing$education <- NULL 
+Bank_Marketing$default <- NULL 
+Bank_Marketing$housing <- NULL 
+Bank_Marketing$loan <- NULL 
+Bank_Marketing$contact <- NULL 
+Bank_Marketing$month <- NULL 
+Bank_Marketing$poutcome <- NULL 
+Bank_Marketing$y <- NULL 
+
+#storing the class variable to a class.value  
+class.value<-Bank_Marketing[,48] 
+
+#KNN modelling steps 
+#standardizing the variables 
+standardized.data<-scale(Bank_Marketing[,-48]) 
+
+ 
+#splitting to train and test data 
+train.index <- sample(c(1:dim(standardized.data)[1]), dim(standardized.data)[1]*0.8)   
+train.data<-standardized.data[train.index,] 
+train.class<-class.value[train.index,] 
+train.classdf<-as.data.frame(train.class) 
+
+test.data<-standardized.data[-train.index,] 
+test.class<-class.value[-train.index,] 
+test.classdf<-as.data.frame(test.class) 
+
+#creating the model 
+library(class) 
+library(DMwR) 
+set.seed(101) 
+predicted.class<-knn(train=train.data,test=test.data,train.classdf$class,k=18) 
+summary(predicted.class) 
+#to find the missclassification rate  
+missclass_error<-mean(test.classdf$class != predicted.class) 
+print(missclass_error) 
+
+#to find the optimum k value 
+wss <- (nrow(train.data)-1)*sum(apply(train.data,2,var)) 
+for (i in 2:20) wss[i] <- sum(kmeans(train.data, 
+                                     centers=i)$withinss) 
+plot(1:20, wss, type="b", xlab="Number of Clusters", 
+     ylab="Within groups sum of squares") 
+
+#construction of confusion matrix 
+library(caret) 
+#test data is converted to factor level 
+test.classdf$class<-factor(test.classdf$class) 
+confusion_marix<-confusionMatrix(test.classdf$class,predicted.class) 
+print(confusion_marix) 
+
